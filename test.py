@@ -12,7 +12,7 @@ b = np.random.rand(n)
 x_true = np.linalg.solve(A, b)
 
 # Measure the memory consumption
-mem_usage = memory_usage((cg_normal_error, (A, b, np.zeros(n))))
+# mem_usage = memory_usage((cg_normal_error, (A, b, np.zeros(n))))
 
 # Measure the time taken
 try:
@@ -31,4 +31,4 @@ except Exception as e:
 
 # Print the results
 print(f"Time taken: {time_taken:.3f} seconds")
-print(f"Memory usage: {max(mem_usage)} MiB")
+# print(f"Memory usage: {max(mem_usage)} MiB")

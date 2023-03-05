@@ -1,5 +1,36 @@
 import numpy as np
+from numba import jit
 
+@jit(cache=True)
+def get_alpha(A, r, p):
+    """
+    Get the alpha value for the Conjugate Gradient Method.
+
+    Parameters:
+    A (ndarray): Coefficient matrix of the linear system.
+    r (ndarray): Residual vector.
+    p (ndarray): Search direction vector.
+
+    Returns:
+    alpha (float): Alpha value.
+    """
+    alpha = np.dot(r, r) / np.dot(p, A.dot(p))
+
+    # Handle invalid alpha value
+    if not np.isfinite(alpha):
+        alpha = 0
+
+    return alpha
+
+@jit(cache=True)
+def get_beta(rs_new, rs_old):
+    return rs_new / rs_old
+
+@jit(cache=True) 
+def support_operation(r, beta, p):
+    return r + beta * p
+
+@jit(cache=True)
 def cg_normal_error(A, b, x0, max_iter=1000, tol=1e-4):
     """
     Conjugate Gradient Method Normal Error algorithm to solve linear system Ax = b.
@@ -23,33 +54,29 @@ def cg_normal_error(A, b, x0, max_iter=1000, tol=1e-4):
     rs_old = np.dot(r, r)
 
     for i in range(max_iter):
-        ap_array = A.dot(p)
-        alpha = rs_old / np.dot(p, ap_array)
-
-        if np.isinf(alpha) or np.isnan(alpha):
-            raise ValueError("CGMN failed: alpha is invalid")
+        alpha = get_alpha(A, r, p)
 
         x += alpha * p
         r -= alpha * ap_array
         rs_new = np.dot(r, r)
 
+        # Handle zero residual case
+        if rs_new == 0:
+            break
+
         if np.sqrt(rs_new) < tol:
             break
 
-        if rs_new == 0:
-            raise ValueError("CGMN failed: rs_new is zero")
+        beta = get_beta(rs_new, rs_old)
 
-        if rs_new < tol**2:
-            break
+        # Handle invalid beta value
+        if not np.isfinite(beta):
+            beta = 0
 
-        beta = rs_new / rs_old
+        # if(i % 100 == 1):
+        #     print("Iteration: ", i, "Residual norm: ", np.sqrt(rs_new))    
+        p = support_operation(r, beta, p)
 
-        if np.isinf(beta) or np.isnan(beta):
-            raise ValueError("CGMN failed: beta is invalid")
-
-        if(i % 100 == 1):
-            print("Iteration: ", i, "Residual norm: ", np.sqrt(rs_new))    
-        p = r + beta * p
         rs_old = rs_new
 
     return x
